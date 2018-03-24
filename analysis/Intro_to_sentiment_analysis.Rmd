@@ -1,0 +1,160 @@
+---
+title: "Intro to sentiment analysis"
+author: "Lauren Blake"
+date: "March 23, 2018"
+output: html_document
+---
+
+# Introduction
+
+The following RMarkdown file uses files from Donors Choose and performs preliminary sentiment analysis. The sentiment analysis was aided by the code and explanations provided in  https://www.tidytextmining.com/. 
+
+# Get Started
+
+```{r}
+# Libraries
+
+library(dplyr)
+library(stringr)
+library(tidytext)
+library(ggplot2)
+library(tidyverse)
+
+# Open the datasets
+
+train <- read.csv("~/Dropbox/DonorsChoose/train.csv")
+test <- read.csv("~/Dropbox/DonorsChoose/test.csv")
+resources <- read.csv("~/Dropbox/DonorsChoose/resources.csv")
+
+```
+
+# Data exploration on the title
+
+## Make data into a tibble and find out how many words are in the title
+
+```{r}
+# First, we want to select project id, title name, and if the project was approved or not
+
+id_title <- c(1, 16, 9)
+
+train_text <- train[,id_title]
+train_text[,1] <- as.character(train_text[,1])
+train_text[,2] <- as.numeric(train_text[,2])
+train_text[,3] <- as.character(train_text[,3])
+
+train_text <- as.tibble(train_text)
+
+tidy_books <- train_text %>% unnest_tokens(word, project_title)
+
+# Find out how many words the title is
+
+freq_table <- count(tidy_books, id) 
+
+title_word_count_by_project <- left_join(freq_table, train_text[,1:2], by = c("id"))
+
+ggplot(title_word_count_by_project, aes(x = factor(project_is_approved), y = n)) + geom_boxplot()
+
+```
+
+## Take out common words ("stop words")
+
+```{r}
+# Take out stop (common) words
+
+tidy_books <- tidy_books %>%
+  anti_join(stop_words)
+
+freq_table <- count(tidy_books, id) 
+
+title_word_count_by_project <- left_join(freq_table, train_text[,1:2], by = c("id"))
+
+ggplot(title_word_count_by_project, aes(x = factor(project_is_approved), y = n)) + geom_boxplot()
+
+# Get a sense of which words are the most common
+
+tidy_books %>%
+  count(word, sort = TRUE) 
+
+
+tidy_books %>%
+  count(word, sort = TRUE) %>%
+  filter(n > 2000) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n)) +
+  geom_col() +
+  xlab(NULL) +
+  coord_flip()
+
+```
+
+## Sentiment analysis
+
+### AFINN
+
+```{r}
+janeaustensentiment <- tidy_books %>% inner_join(get_sentiments("afinn"))
+
+summary(janeaustensentiment)
+
+janeaustensentiment[1:10,]
+
+# Is there a correlation between the average score and whether or not it gets accepted?
+
+check_corr_titles <- aggregate(janeaustensentiment$score, by = list(janeaustensentiment$id), FUN = mean)
+colnames(check_corr_titles) <- c("id", "score")
+
+check_corr_titles2 <- left_join(check_corr_titles, train_text[,1:2], by = c("id"))
+
+
+ggplot(check_corr_titles2, aes(x = factor(project_is_approved), y = score)) + geom_boxplot()
+
+```
+
+### BING
+
+```{r}
+# Sentiment analysis - bing
+
+janeaustensentiment <- tidy_books %>% inner_join(get_sentiments("bing"))
+
+janeaustensentiment[1:10,]
+
+# Is there a connection between the average score and whether or not it gets accepted?
+
+length(which(janeaustensentiment$project_is_approved == 1 & janeaustensentiment$sentiment == "positive"))
+length(which(janeaustensentiment$project_is_approved == 0 & janeaustensentiment$sentiment == "positive"))
+
+length(which(janeaustensentiment$project_is_approved == 1 & janeaustensentiment$sentiment == "negative"))
+length(which(janeaustensentiment$project_is_approved == 0 & janeaustensentiment$sentiment == "negative"))
+
+
+bingnegative <- get_sentiments("bing") %>% 
+  filter(sentiment == "negative")
+
+wordcounts <- tidy_books %>%
+  group_by(id) %>%
+  summarize(words = n())
+
+sentiment_ratio <- tidy_books %>%
+  semi_join(bingnegative) %>%
+  group_by(id, project_is_approved) %>%
+  summarize(negativewords = n()) %>%
+  left_join(wordcounts, by = c("id")) %>%
+  mutate(ratio = negativewords/words) %>%
+  top_n(1) %>%
+  ungroup()
+
+ggplot(sentiment_ratio, aes(x = factor(project_is_approved), y = ratio)) + geom_boxplot()
+
+
+```
+
+### NRC
+
+```{r}
+janeaustensentiment <- tidy_books %>% inner_join(get_sentiments("nrc"))
+
+janeaustensentiment[1:20,]
+
+```
+
