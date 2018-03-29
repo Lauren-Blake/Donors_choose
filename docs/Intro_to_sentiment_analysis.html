@@ -339,13 +339,19 @@ library(tidytext)</code></pre>
 <pre><code>## Warning: package &#39;tidytext&#39; was built under R version 3.4.4</code></pre>
 <pre class="r"><code>library(ggplot2)
 library(tidyverse)</code></pre>
-<pre><code>## ── Attaching packages ────────────────────────────────────────────────────────────── tidyverse 1.2.1 ──</code></pre>
+<pre><code>## ── Attaching packages ────────────────────────────────── tidyverse 1.2.1 ──</code></pre>
 <pre><code>## ✔ tibble  1.4.2     ✔ readr   1.1.1
 ## ✔ tidyr   0.7.2     ✔ purrr   0.2.4
 ## ✔ tibble  1.4.2     ✔ forcats 0.2.0</code></pre>
-<pre><code>## ── Conflicts ───────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+<pre><code>## ── Conflicts ───────────────────────────────────── tidyverse_conflicts() ──
 ## ✖ dplyr::filter() masks stats::filter()
 ## ✖ dplyr::lag()    masks stats::lag()</code></pre>
+<pre class="r"><code>library(cowplot)</code></pre>
+<pre><code>## 
+## Attaching package: &#39;cowplot&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:ggplot2&#39;:
+## 
+##     ggsave</code></pre>
 <pre class="r"><code># Open the datasets
 
 train &lt;- read.csv(&quot;~/Dropbox/DonorsChoose/train.csv&quot;)
@@ -377,6 +383,9 @@ title_word_count_by_project &lt;- left_join(freq_table, train_text[,1:2], by = c
 
 ggplot(title_word_count_by_project, aes(x = factor(project_is_approved), y = n)) + geom_boxplot()</code></pre>
 <p><img src="Intro_to_sentiment_analysis_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
+<pre class="r"><code>ggplot(title_word_count_by_project, aes(x = n, fill = factor(project_is_approved))) + 
+    geom_bar(position = &quot;fill&quot;)</code></pre>
+<p><img src="Intro_to_sentiment_analysis_files/figure-html/unnamed-chunk-2-2.png" width="672" /></p>
 </div>
 <div id="take-out-common-words-stop-words" class="section level2">
 <h2>Take out common words (“stop words”)</h2>
@@ -391,7 +400,10 @@ title_word_count_by_project &lt;- left_join(freq_table, train_text[,1:2], by = c
 
 ggplot(title_word_count_by_project, aes(x = factor(project_is_approved), y = n)) + geom_boxplot()</code></pre>
 <p><img src="Intro_to_sentiment_analysis_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
-<pre class="r"><code># Get a sense of which words are the most common
+<pre class="r"><code>title_n &lt;- ggplot(title_word_count_by_project, aes(x = n, fill = factor(project_is_approved))) + 
+    geom_bar(position = &quot;fill&quot;) + ggtitle(&quot;Number of words by approval status&quot;)
+
+# Get a sense of which words are the most common
 
 tidy_books %&gt;%
   count(word, sort = TRUE) </code></pre>
@@ -464,6 +476,47 @@ check_corr_titles2 &lt;- left_join(check_corr_titles, train_text[,1:2], by = c(&
 
 ggplot(check_corr_titles2, aes(x = factor(project_is_approved), y = score)) + geom_boxplot()</code></pre>
 <p><img src="Intro_to_sentiment_analysis_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<pre class="r"><code>title_a &lt;- ggplot(check_corr_titles2,aes(x = score, fill = factor(project_is_approved))) + 
+    geom_bar(position = &quot;fill&quot;) + ggtitle(&quot;Avg. AFINN sentiment score by approval status&quot;)
+
+# Is there a relationship between the most positive word and whether it gets approved?
+
+check_corr_titles &lt;- aggregate(janeaustensentiment$score, by = list(janeaustensentiment$id), FUN = max)
+colnames(check_corr_titles) &lt;- c(&quot;id&quot;, &quot;score&quot;)
+
+check_corr_titles2 &lt;- left_join(check_corr_titles, train_text[,1:2], by = c(&quot;id&quot;))
+
+
+ggplot(check_corr_titles2, aes(x = factor(project_is_approved), y = score)) + geom_boxplot()</code></pre>
+<p><img src="Intro_to_sentiment_analysis_files/figure-html/unnamed-chunk-4-2.png" width="672" /></p>
+<pre class="r"><code>title_b &lt;- ggplot(check_corr_titles2,aes(x = score, fill = factor(project_is_approved))) + 
+    geom_bar(position = &quot;fill&quot;) + ggtitle(&quot;Max. AFINN sentiment score by approval status&quot;)
+
+# Is there a relationship between the most negative word and whether it gets approved?
+
+check_corr_titles &lt;- aggregate(janeaustensentiment$score, by = list(janeaustensentiment$id), FUN = min)
+colnames(check_corr_titles) &lt;- c(&quot;id&quot;, &quot;score&quot;)
+
+check_corr_titles2 &lt;- left_join(check_corr_titles, train_text[,1:2], by = c(&quot;id&quot;))
+
+
+ggplot(check_corr_titles2, aes(x = factor(project_is_approved), y = score)) + geom_boxplot()</code></pre>
+<p><img src="Intro_to_sentiment_analysis_files/figure-html/unnamed-chunk-4-3.png" width="672" /></p>
+<pre class="r"><code>title_c &lt;- ggplot(check_corr_titles2,aes(x = score, fill = factor(project_is_approved))) + 
+    geom_bar(position = &quot;fill&quot;) + ggtitle(&quot;Min. AFINN sentiment score by approval status&quot;)
+
+# Is there a relationship between the most common value and whether it gets approved?
+
+check_corr_titles &lt;- aggregate(janeaustensentiment$score, by = list(janeaustensentiment$id), FUN = median)
+colnames(check_corr_titles) &lt;- c(&quot;id&quot;, &quot;score&quot;)
+
+check_corr_titles2 &lt;- left_join(check_corr_titles, train_text[,1:2], by = c(&quot;id&quot;))
+
+
+ggplot(check_corr_titles2, aes(x = factor(project_is_approved), y = score)) + geom_boxplot()</code></pre>
+<p><img src="Intro_to_sentiment_analysis_files/figure-html/unnamed-chunk-4-4.png" width="672" /></p>
+<pre class="r"><code>title_d &lt;- ggplot(check_corr_titles2,aes(x = score, fill = factor(project_is_approved))) + 
+    geom_bar(position = &quot;fill&quot;) + ggtitle(&quot;Median AFINN sentiment score by approval status&quot;)</code></pre>
 </div>
 <div id="bing" class="section level3">
 <h3>BING</h3>
@@ -545,6 +598,348 @@ sentiment_ratio &lt;- tidy_books %&gt;%
 ## 20 p013780                1.00 culinary trust</code></pre>
 </div>
 </div>
+</div>
+<div id="data-exploration-on-essay-1" class="section level1">
+<h1>Data exploration on essay 1</h1>
+<div id="make-data-into-a-tibble-and-find-out-how-many-words-are-in-essay-1" class="section level2">
+<h2>Make data into a tibble and find out how many words are in essay 1</h2>
+<pre class="r"><code># First, we want to select project id, title name, and if the project was approved or not
+
+id_title &lt;- c(1, 16, 10)
+
+train_text &lt;- train[,id_title]
+train_text[,1] &lt;- as.character(train_text[,1])
+train_text[,2] &lt;- as.numeric(train_text[,2])
+train_text[,3] &lt;- as.character(train_text[,3])
+
+train_text &lt;- as.tibble(train_text)
+
+tidy_books &lt;- train_text %&gt;% unnest_tokens(word, project_essay_1)
+
+# Find how many words in essay1
+
+freq_table &lt;- count(tidy_books, id) 
+
+title_word_count_by_project &lt;- left_join(freq_table, train_text[,1:2], by = c(&quot;id&quot;))
+
+ggplot(title_word_count_by_project, aes(x = factor(project_is_approved), y = n)) + geom_boxplot()</code></pre>
+<p><img src="Intro_to_sentiment_analysis_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<pre class="r"><code>ggplot(title_word_count_by_project, aes(x = n, fill = factor(project_is_approved))) + 
+    geom_bar(position = &quot;fill&quot;)</code></pre>
+<p><img src="Intro_to_sentiment_analysis_files/figure-html/unnamed-chunk-7-2.png" width="672" /></p>
+</div>
+<div id="take-out-common-words-stop-words-1" class="section level2">
+<h2>Take out common words (“stop words”)</h2>
+<pre class="r"><code># Take out stop (common) words
+
+tidy_books &lt;- tidy_books %&gt;%
+  anti_join(stop_words)</code></pre>
+<pre><code>## Joining, by = &quot;word&quot;</code></pre>
+<pre class="r"><code>freq_table &lt;- count(tidy_books, id) 
+
+title_word_count_by_project &lt;- left_join(freq_table, train_text[,1:2], by = c(&quot;id&quot;))
+
+ggplot(title_word_count_by_project, aes(x = factor(project_is_approved), y = n)) + geom_boxplot()</code></pre>
+<p><img src="Intro_to_sentiment_analysis_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+<pre class="r"><code>essay1_n &lt;- ggplot(title_word_count_by_project, aes(x = n, fill = factor(project_is_approved))) + 
+    geom_bar(position = &quot;fill&quot;)
+
+# Get a sense of which words are the most common
+
+tidy_books %&gt;%
+  count(word, sort = TRUE) </code></pre>
+<pre><code>## # A tibble: 46,131 x 2
+##    word           n
+##    &lt;chr&gt;      &lt;int&gt;
+##  1 students  610304
+##  2 school    310246
+##  3 learning  136342
+##  4 learn     118186
+##  5 classroom 117935
+##  6 love       77494
+##  7 day        74593
+##  8 grade      57162
+##  9 class      56279
+## 10 free       51354
+## # ... with 46,121 more rows</code></pre>
+<pre class="r"><code>tidy_books %&gt;%
+  count(word, sort = TRUE) %&gt;%
+  filter(n &gt; 20000) %&gt;%
+  mutate(word = reorder(word, n)) %&gt;%
+  ggplot(aes(word, n)) +
+  geom_col() +
+  xlab(NULL) +
+  coord_flip()</code></pre>
+<p><img src="Intro_to_sentiment_analysis_files/figure-html/unnamed-chunk-8-2.png" width="672" /></p>
+</div>
+<div id="sentiment-analysis-1" class="section level2">
+<h2>Sentiment analysis</h2>
+<div id="afinn-1" class="section level3">
+<h3>AFINN</h3>
+<pre class="r"><code>janeaustensentiment &lt;- tidy_books %&gt;% inner_join(get_sentiments(&quot;afinn&quot;))</code></pre>
+<pre><code>## Joining, by = &quot;word&quot;</code></pre>
+<pre class="r"><code>summary(janeaustensentiment)</code></pre>
+<pre><code>##       id            project_is_approved     word          
+##  Length:1144903     Min.   :0.00        Length:1144903    
+##  Class :character   1st Qu.:1.00        Class :character  
+##  Mode  :character   Median :1.00        Mode  :character  
+##                     Mean   :0.85                          
+##                     3rd Qu.:1.00                          
+##                     Max.   :1.00                          
+##      score       
+##  Min.   :-4.000  
+##  1st Qu.: 1.000  
+##  Median : 2.000  
+##  Mean   : 1.394  
+##  3rd Qu.: 2.000  
+##  Max.   : 5.000</code></pre>
+<pre class="r"><code>janeaustensentiment[1:10,]</code></pre>
+<pre><code>## # A tibble: 10 x 4
+##    id      project_is_approved word      score
+##    &lt;chr&gt;                 &lt;dbl&gt; &lt;chr&gt;     &lt;int&gt;
+##  1 p036502                1.00 risk         -2
+##  2 p036502                1.00 obstacles    -2
+##  3 p036502                1.00 excited       3
+##  4 p036502                1.00 exposed      -1
+##  5 p036502                1.00 motivated     2
+##  6 p036502                1.00 hard         -1
+##  7 p036502                1.00 excited       3
+##  8 p039565                0    rich          2
+##  9 p039565                0    free          1
+## 10 p039565                0    blocks       -1</code></pre>
+<pre class="r"><code># Is there a relationship between the average score and whether or not it gets accepted?
+
+check_corr_titles &lt;- aggregate(janeaustensentiment$score, by = list(janeaustensentiment$id), FUN = mean)
+colnames(check_corr_titles) &lt;- c(&quot;id&quot;, &quot;score&quot;)
+
+check_corr_titles2 &lt;- left_join(check_corr_titles, train_text[,1:2], by = c(&quot;id&quot;))
+
+ggplot(check_corr_titles2, aes(x = factor(project_is_approved), y = score)) + geom_boxplot()</code></pre>
+<p><img src="Intro_to_sentiment_analysis_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+<pre class="r"><code>essay1_a &lt;- ggplot(check_corr_titles2,aes(x = score, fill = factor(project_is_approved))) + 
+    geom_bar(position = &quot;fill&quot;) 
+
+
+# Is there a relationship between the most positive word and whether it gets approved?
+
+check_corr_titles &lt;- aggregate(janeaustensentiment$score, by = list(janeaustensentiment$id), FUN = max)
+colnames(check_corr_titles) &lt;- c(&quot;id&quot;, &quot;score&quot;)
+
+check_corr_titles2 &lt;- left_join(check_corr_titles, train_text[,1:2], by = c(&quot;id&quot;))
+
+
+ggplot(check_corr_titles2, aes(x = factor(project_is_approved), y = score)) + geom_boxplot()</code></pre>
+<p><img src="Intro_to_sentiment_analysis_files/figure-html/unnamed-chunk-9-2.png" width="672" /></p>
+<pre class="r"><code>essay1_b &lt;- ggplot(check_corr_titles2,aes(x = score, fill = factor(project_is_approved))) + 
+    geom_bar(position = &quot;fill&quot;)
+
+# Is there a relationship between the most negative word and whether it gets approved?
+
+check_corr_titles &lt;- aggregate(janeaustensentiment$score, by = list(janeaustensentiment$id), FUN = min)
+colnames(check_corr_titles) &lt;- c(&quot;id&quot;, &quot;score&quot;)
+
+check_corr_titles2 &lt;- left_join(check_corr_titles, train_text[,1:2], by = c(&quot;id&quot;))
+
+
+ggplot(check_corr_titles2, aes(x = factor(project_is_approved), y = score)) + geom_boxplot()</code></pre>
+<p><img src="Intro_to_sentiment_analysis_files/figure-html/unnamed-chunk-9-3.png" width="672" /></p>
+<pre class="r"><code>essay1_c &lt;- ggplot(check_corr_titles2,aes(x = score, fill = factor(project_is_approved))) + 
+    geom_bar(position = &quot;fill&quot;)
+
+# Is there a relationship between the most common value and whether it gets approved?
+
+check_corr_titles &lt;- aggregate(janeaustensentiment$score, by = list(janeaustensentiment$id), FUN = median)
+colnames(check_corr_titles) &lt;- c(&quot;id&quot;, &quot;score&quot;)
+
+check_corr_titles2 &lt;- left_join(check_corr_titles, train_text[,1:2], by = c(&quot;id&quot;))
+
+
+ggplot(check_corr_titles2, aes(x = factor(project_is_approved), y = score)) + geom_boxplot()</code></pre>
+<p><img src="Intro_to_sentiment_analysis_files/figure-html/unnamed-chunk-9-4.png" width="672" /></p>
+<pre class="r"><code>essay1_d &lt;- ggplot(check_corr_titles2,aes(x = score, fill = factor(project_is_approved))) + 
+    geom_bar(position = &quot;fill&quot;)</code></pre>
+</div>
+</div>
+</div>
+<div id="data-exploration-on-essay-2" class="section level1">
+<h1>Data exploration on essay 2</h1>
+<div id="make-data-into-a-tibble-and-find-out-how-many-words-are-in-essay-2" class="section level2">
+<h2>Make data into a tibble and find out how many words are in essay 2</h2>
+<pre class="r"><code># First, we want to select project id, essay 2, and if the project was approved or not
+
+id_title &lt;- c(1, 16, 11)
+
+train_text &lt;- train[,id_title]
+train_text[,1] &lt;- as.character(train_text[,1])
+train_text[,2] &lt;- as.numeric(train_text[,2])
+train_text[,3] &lt;- as.character(train_text[,3])
+
+train_text &lt;- as.tibble(train_text)
+
+tidy_books &lt;- train_text %&gt;% unnest_tokens(word, project_essay_2)
+
+# Find how many words in essay1
+
+freq_table &lt;- count(tidy_books, id) 
+
+title_word_count_by_project &lt;- left_join(freq_table, train_text[,1:2], by = c(&quot;id&quot;))
+
+ggplot(title_word_count_by_project, aes(x = factor(project_is_approved), y = n)) + geom_boxplot()</code></pre>
+<p><img src="Intro_to_sentiment_analysis_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+<pre class="r"><code>ggplot(title_word_count_by_project, aes(x = n, fill = factor(project_is_approved))) + 
+    geom_bar(position = &quot;fill&quot;)</code></pre>
+<p><img src="Intro_to_sentiment_analysis_files/figure-html/unnamed-chunk-10-2.png" width="672" /></p>
+</div>
+<div id="take-out-common-words-stop-words-2" class="section level2">
+<h2>Take out common words (“stop words”)</h2>
+<pre class="r"><code># Take out stop (common) words
+
+tidy_books &lt;- tidy_books %&gt;%
+  anti_join(stop_words)</code></pre>
+<pre><code>## Joining, by = &quot;word&quot;</code></pre>
+<pre class="r"><code>freq_table &lt;- count(tidy_books, id) 
+
+title_word_count_by_project &lt;- left_join(freq_table, train_text[,1:2], by = c(&quot;id&quot;))
+
+ggplot(title_word_count_by_project, aes(x = factor(project_is_approved), y = n)) + geom_boxplot()</code></pre>
+<p><img src="Intro_to_sentiment_analysis_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+<pre class="r"><code>essay2_n &lt;- ggplot(title_word_count_by_project, aes(x = n, fill = factor(project_is_approved))) + 
+    geom_bar(position = &quot;fill&quot;)
+
+# Get a sense of which words are the most common
+
+tidy_books %&gt;%
+  count(word, sort = TRUE) </code></pre>
+<pre><code>## # A tibble: 64,340 x 2
+##    word            n
+##    &lt;chr&gt;       &lt;int&gt;
+##  1 students   670368
+##  2 classroom  158719
+##  3 learning   154165
+##  4 reading    105082
+##  5 school     104381
+##  6 learn       88350
+##  7 books       81544
+##  8 skills      76292
+##  9 technology  67841
+## 10 time        66121
+## # ... with 64,330 more rows</code></pre>
+<pre class="r"><code>tidy_books %&gt;%
+  count(word, sort = TRUE) %&gt;%
+  filter(n &gt; 20000) %&gt;%
+  mutate(word = reorder(word, n)) %&gt;%
+  ggplot(aes(word, n)) +
+  geom_col() +
+  xlab(NULL) +
+  coord_flip()</code></pre>
+<p><img src="Intro_to_sentiment_analysis_files/figure-html/unnamed-chunk-11-2.png" width="672" /></p>
+</div>
+<div id="sentiment-analysis-2" class="section level2">
+<h2>Sentiment analysis</h2>
+<div id="afinn-2" class="section level3">
+<h3>AFINN</h3>
+<pre class="r"><code>janeaustensentiment &lt;- tidy_books %&gt;% inner_join(get_sentiments(&quot;afinn&quot;))</code></pre>
+<pre><code>## Joining, by = &quot;word&quot;</code></pre>
+<pre class="r"><code>summary(janeaustensentiment)</code></pre>
+<pre><code>##       id            project_is_approved     word          
+##  Length:1057401     Min.   :0.0000      Length:1057401    
+##  Class :character   1st Qu.:1.0000      Class :character  
+##  Mode  :character   Median :1.0000      Mode  :character  
+##                     Mean   :0.8498                        
+##                     3rd Qu.:1.0000                        
+##                     Max.   :1.0000                        
+##      score       
+##  Min.   :-5.000  
+##  1st Qu.: 1.000  
+##  Median : 2.000  
+##  Mean   : 1.368  
+##  3rd Qu.: 2.000  
+##  Max.   : 5.000</code></pre>
+<pre class="r"><code>janeaustensentiment[1:10,]</code></pre>
+<pre><code>## # A tibble: 10 x 4
+##    id      project_is_approved word       score
+##    &lt;chr&gt;                 &lt;dbl&gt; &lt;chr&gt;      &lt;int&gt;
+##  1 p036502                1.00 favorite       2
+##  2 p036502                1.00 dream          1
+##  3 p036502                1.00 struggling    -2
+##  4 p039565                0    excitement     3
+##  5 p233823                1.00 wonderful      4
+##  6 p233823                1.00 advanced       1
+##  7 p185307                0    inspired       2
+##  8 p185307                0    active         1
+##  9 p185307                0    gaining        2
+## 10 p185307                0    inspired       2</code></pre>
+<pre class="r"><code># Is there a relationship between the average score and whether or not it gets accepted?
+
+check_corr_titles &lt;- aggregate(janeaustensentiment$score, by = list(janeaustensentiment$id), FUN = mean)
+colnames(check_corr_titles) &lt;- c(&quot;id&quot;, &quot;score&quot;)
+
+check_corr_titles2 &lt;- left_join(check_corr_titles, train_text[,1:2], by = c(&quot;id&quot;))
+
+
+ggplot(check_corr_titles2, aes(x = factor(project_is_approved), y = score)) + geom_boxplot()</code></pre>
+<p><img src="Intro_to_sentiment_analysis_files/figure-html/unnamed-chunk-12-1.png" width="672" /></p>
+<pre class="r"><code>essay2_a &lt;- ggplot(check_corr_titles2,aes(x = score, fill = factor(project_is_approved))) + 
+    geom_bar(position = &quot;fill&quot;)
+
+# Is there a relationship between the most positive word and whether it gets approved?
+
+check_corr_titles &lt;- aggregate(janeaustensentiment$score, by = list(janeaustensentiment$id), FUN = max)
+colnames(check_corr_titles) &lt;- c(&quot;id&quot;, &quot;score&quot;)
+
+check_corr_titles2 &lt;- left_join(check_corr_titles, train_text[,1:2], by = c(&quot;id&quot;))
+
+
+ggplot(check_corr_titles2, aes(x = factor(project_is_approved), y = score)) + geom_boxplot()</code></pre>
+<p><img src="Intro_to_sentiment_analysis_files/figure-html/unnamed-chunk-12-2.png" width="672" /></p>
+<pre class="r"><code>essay2_b &lt;-ggplot(check_corr_titles2,aes(x = score, fill = factor(project_is_approved))) + 
+    geom_bar(position = &quot;fill&quot;)
+
+# Is there a relationship between the most negative word and whether it gets approved?
+
+check_corr_titles &lt;- aggregate(janeaustensentiment$score, by = list(janeaustensentiment$id), FUN = min)
+colnames(check_corr_titles) &lt;- c(&quot;id&quot;, &quot;score&quot;)
+
+check_corr_titles2 &lt;- left_join(check_corr_titles, train_text[,1:2], by = c(&quot;id&quot;))
+
+
+ggplot(check_corr_titles2, aes(x = factor(project_is_approved), y = score)) + geom_boxplot()</code></pre>
+<p><img src="Intro_to_sentiment_analysis_files/figure-html/unnamed-chunk-12-3.png" width="672" /></p>
+<pre class="r"><code>essay2_c &lt;-ggplot(check_corr_titles2,aes(x = score, fill = factor(project_is_approved))) + 
+    geom_bar(position = &quot;fill&quot;)
+
+# Is there a relationship between the most common value and whether it gets approved?
+
+check_corr_titles &lt;- aggregate(janeaustensentiment$score, by = list(janeaustensentiment$id), FUN = median)
+colnames(check_corr_titles) &lt;- c(&quot;id&quot;, &quot;score&quot;)
+
+check_corr_titles2 &lt;- left_join(check_corr_titles, train_text[,1:2], by = c(&quot;id&quot;))
+
+
+ggplot(check_corr_titles2, aes(x = factor(project_is_approved), y = score)) + geom_boxplot()</code></pre>
+<p><img src="Intro_to_sentiment_analysis_files/figure-html/unnamed-chunk-12-4.png" width="672" /></p>
+<pre class="r"><code>essay2_d &lt;- ggplot(check_corr_titles2,aes(x = score, fill = factor(project_is_approved))) + 
+    geom_bar(position = &quot;fill&quot;)</code></pre>
+</div>
+</div>
+</div>
+<div id="summary-plots" class="section level1">
+<h1>Summary Plots</h1>
+<pre class="r"><code>plot_grid(title_n, essay1_n, essay2_n, labels = c(&quot;A&quot;, &quot;B&quot;, &quot;C&quot;), ncol = 1)</code></pre>
+<p><img src="Intro_to_sentiment_analysis_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
+<pre class="r"><code>plot_grid(title_a, essay1_a, essay2_a, labels = c(&quot;A&quot;, &quot;B&quot;, &quot;C&quot;), ncol = 1)</code></pre>
+<pre><code>## Warning: position_stack requires non-overlapping x intervals
+
+## Warning: position_stack requires non-overlapping x intervals
+
+## Warning: position_stack requires non-overlapping x intervals</code></pre>
+<p><img src="Intro_to_sentiment_analysis_files/figure-html/unnamed-chunk-13-2.png" width="672" /></p>
+<pre class="r"><code>plot_grid(title_b, essay1_b, essay2_b, labels = c(&quot;A&quot;, &quot;B&quot;, &quot;C&quot;), ncol = 1)</code></pre>
+<p><img src="Intro_to_sentiment_analysis_files/figure-html/unnamed-chunk-13-3.png" width="672" /></p>
+<pre class="r"><code>plot_grid(title_c, essay1_c, essay2_c, labels = c(&quot;A&quot;, &quot;B&quot;, &quot;C&quot;), ncol = 1)</code></pre>
+<p><img src="Intro_to_sentiment_analysis_files/figure-html/unnamed-chunk-13-4.png" width="672" /></p>
+<pre class="r"><code>plot_grid(title_d, essay1_d, essay2_d, labels = c(&quot;A&quot;, &quot;B&quot;, &quot;C&quot;), ncol = 1)</code></pre>
+<p><img src="Intro_to_sentiment_analysis_files/figure-html/unnamed-chunk-13-5.png" width="672" /></p>
 </div>
 
 <!-- Adjust MathJax settings so that all math formulae are shown using
